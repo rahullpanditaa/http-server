@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
@@ -59,6 +61,7 @@ func main() {
 
 	// api endpoint
 	mux.HandleFunc("GET /api/healthz", readinessHandler)
+	mux.HandleFunc("POST /api/validate_chirp", validateChirpHandler)
 
 	// admin endpoint
 	mux.HandleFunc("GET /admin/metrics", apiCfg.numberOfRequests)
@@ -73,5 +76,63 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
 
+func validateChirpHandler(w http.ResponseWriter, r *http.Request) {
+	type requestParams struct {
+		RequestBody string `json:"body"`
+	}
+
+	params := requestParams{}
+
+	body, err := io.ReadAll(r.Body)
+	defer r.Body.Close()
+
+	if err != nil {
+		log.Printf("Error reading request body: %s", err)
+		w.WriteHeader(500)
+		return
+	}
+
+	err = json.Unmarshal(body, &params)
+	if err != nil {
+		log.Printf("Error unmarshalling parameters: %s", err)
+		w.WriteHeader(500)
+		return
+	}
+
+	if len(params.RequestBody) > 140 {
+		type respBody struct {
+			Error string `json:"error"`
+		}
+
+		resp := respBody{
+			Error: "chirp length is greater than 140 chars",
+		}
+		body, err := json.Marshal(&resp)
+		if err != nil {
+			log.Printf("Error marshalling json response: %s", err)
+			w.WriteHeader(500)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write(body)
+	} else {
+		type respBody struct {
+			Valid bool `json:"valid"`
+		}
+		resp := respBody{
+			Valid: true,
+		}
+		body, err := json.Marshal(&resp)
+		if err != nil {
+			log.Printf("Error marshalling json response: %s", err)
+			w.WriteHeader(500)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(200)
+		w.Write(body)
+	}
 }
