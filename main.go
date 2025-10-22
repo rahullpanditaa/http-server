@@ -6,13 +6,20 @@ import (
 )
 
 func main() {
+	// create http multiplexer - router that maps
+	// url patterns to handlers
 	mux := http.NewServeMux()
 
-	assetsFileServer := http.FileServer(http.Dir("assets"))
+	// custom http handler function
+	readinessHandler := func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Add("Content-Type", "text/plain; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+	}
 
-	mux.Handle("/assets/", http.StripPrefix("/assets/", assetsFileServer))
+	mux.Handle("/app/", http.StripPrefix("/app", http.HandlerFunc(readinessHandler)))
 
-	server := http.Server{
+	server := &http.Server{
 		Addr:    ":8080",
 		Handler: mux,
 	}
