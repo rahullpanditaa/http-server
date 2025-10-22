@@ -16,8 +16,12 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	}
+	mux.HandleFunc("/healthz", readinessHandler)
 
-	mux.Handle("/app/", http.StripPrefix("/app", http.HandlerFunc(readinessHandler)))
+	// fileserver handler that serves static files
+	// from the CURRENT DIR
+	fileServerHandler := http.FileServer(http.Dir("."))
+	mux.Handle("/app/", http.StripPrefix("/app", fileServerHandler))
 
 	server := &http.Server{
 		Addr:    ":8080",
