@@ -8,6 +8,16 @@ import (
 	"sync/atomic"
 )
 
+var (
+	metricsTemplate = `
+	<html>
+  		<body>
+    <h1>Welcome, Chirpy Admin</h1>
+    <p>Chirpy has been visited %d times!</p>
+  </body>
+</html>`
+)
+
 type apiConfig struct {
 	fileServerHits atomic.Int32
 }
@@ -21,10 +31,10 @@ func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 }
 
 func (cfg *apiConfig) numberOfRequests(w http.ResponseWriter, r *http.Request) {
-	hits := strconv.Itoa(int(cfg.fileServerHits.Load()))
-	w.Header().Set("Hits", hits)
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.Write([]byte(fmt.Sprintf("Hits: %s\n", hits)))
+	hits := int(cfg.fileServerHits.Load())
+	w.Header().Set("Hits", strconv.Itoa((hits)))
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Write([]byte(fmt.Sprintf(metricsTemplate, hits)))
 }
 
 func (cfg *apiConfig) resetHits(w http.ResponseWriter, r *http.Request) {
@@ -35,22 +45,24 @@ func (cfg *apiConfig) resetHits(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	mux := http.NewServeMux()
+	var apiCfg apiConfig
 
 	readinessHandler := func(w http.ResponseWriter, req *http.Request) {
 		w.Header().Add("Content-Type", "text/plain; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	}
-	mux.HandleFunc("/healthz", readinessHandler)
-
-	var apiCfg apiConfig
 
 	fileServerHandler := http.StripPrefix("/app", http.FileServer(http.Dir(".")))
+
 	mux.Handle("/app/", apiCfg.middlewareMetricsInc(fileServerHandler))
 
-	mux.HandleFunc("/metrics", apiCfg.numberOfRequests)
+	// api endpoint
+	mux.HandleFunc("GET /api/healthz", readinessHandler)
 
-	mux.HandleFunc("/reset", apiCfg.resetHits)
+	// admin endpoint
+	mux.HandleFunc("GET /admin/metrics", apiCfg.numberOfRequests)
+	mux.HandleFunc("POST /admin/reset", apiCfg.resetHits)
 
 	server := &http.Server{
 		Addr:    ":8080",
