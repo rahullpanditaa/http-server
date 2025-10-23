@@ -30,6 +30,8 @@ func main() {
 	mux.HandleFunc("GET /api/healthz", handlers.ApiHandlerHealth)
 	mux.HandleFunc("POST /api/validate_chirp", handlers.ApiValidateChirpHandler)
 	mux.HandleFunc("POST /api/users", apiCfg.CreateUserHandler)
+	// mux.HandleFunc("POST /api/chirps", )
+
 	// admin endpoint
 	mux.HandleFunc("GET /admin/metrics", apiCfg.NumberOfRequests)
 	mux.HandleFunc("POST /admin/reset", apiCfg.ResetHits)
