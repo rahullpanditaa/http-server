@@ -1,9 +1,15 @@
 package main
 
 import (
+	"database/sql"
 	"log"
 	"net/http"
+	"os"
 	"strings"
+
+	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
+	"github.com/rahullpanditaa/http-server/internal/database"
 )
 
 var (
@@ -17,8 +23,19 @@ var (
 )
 
 func main() {
-	mux := http.NewServeMux()
+	godotenv.Load()
+	dbURL := os.Getenv("DB_URL")
+	// open connection to db
+	db, err := sql.Open("postgres", dbURL)
+	if err != nil {
+		log.Fatal(err)
+	}
 	var apiCfg apiConfig
+
+	dbQueries := database.New(db)
+	apiCfg.dbQueries = dbQueries
+
+	mux := http.NewServeMux()
 
 	readinessHandler := func(w http.ResponseWriter, req *http.Request) {
 		w.Header().Add("Content-Type", "text/plain; charset=utf-8")
@@ -43,7 +60,7 @@ func main() {
 		Handler: mux,
 	}
 
-	err := server.ListenAndServe()
+	err = server.ListenAndServe()
 	if err != nil {
 		log.Fatal(err)
 	}
