@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"sync/atomic"
 
 	"github.com/rahullpanditaa/http-server/internal"
@@ -63,4 +64,58 @@ func (cfg *ApiConfig) CreateUserHandler(w http.ResponseWriter, r *http.Request) 
 	userToReturn := handlers.User{ID: user.ID, CreatedAt: user.CreatedAt, UpdatedAt: user.CreatedAt, Email: user.Email}
 
 	helpers.RespondWithJson(w, http.StatusCreated, userToReturn)
+}
+
+func (cfg *ApiConfig) ValidateChirpsHandler(w http.ResponseWriter, r *http.Request) {
+	// read from request body
+	requestPayload := helpers.ReadRequestJSON[handlers.RequestParams](w, r)
+	requestBody := requestPayload.RequestBody
+	userID := requestPayload.UserID
+
+	if len(requestBody) > 140 {
+		helpers.RespondWithError(w, http.StatusBadRequest, "chirp length greater than 140 chars")
+	} else {
+		req_words := strings.Split(requestBody, " ")
+		cleaned := checkForProfanity(req_words)
+
+		chirp, err := cfg.DbQueries.CreateChirp(
+			r.Context(),
+			database.CreateChirpParams{
+				Body:   cleaned,
+				UserID: userID,
+			},
+		)
+		if err != nil {
+			w.WriteHeader(500)
+			log.Fatalf("Error: %v\n", err)
+		}
+
+		chirpResource := handlers.Chirp{
+			ID:        chirp.ID,
+			CreatedAt: chirp.CreatedAt,
+			UpdatedAt: chirp.UpdatedAt,
+			Body:      chirp.Body,
+			UserID:    chirp.UserID,
+		}
+
+		helpers.RespondWithJson(w, http.StatusCreated, chirpResource)
+
+	}
+
+}
+
+func checkForProfanity(sentence []string) string {
+	var sanitizedSentence []string
+
+	for _, word := range sentence {
+		w := strings.ToLower(word)
+		switch w {
+		case "kerfuffle", "sharbert", "fornax":
+			word = "****"
+		}
+		sanitizedSentence = append(sanitizedSentence, word)
+
+	}
+
+	return strings.Join(sanitizedSentence, " ")
 }
