@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"sync/atomic"
 
@@ -16,6 +17,7 @@ import (
 type ApiConfig struct {
 	FileServerHits atomic.Int32
 	DbQueries      *database.Queries
+	Platform       string
 }
 
 func (cfg *ApiConfig) MiddlewareMetricsInc(next http.Handler) http.Handler {
@@ -33,10 +35,19 @@ func (cfg *ApiConfig) NumberOfRequests(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(fmt.Sprintf(internal.MetricsTemplate, hits)))
 }
 
+// Delete all users in DB
 func (cfg *ApiConfig) ResetHits(w http.ResponseWriter, r *http.Request) {
-	cfg.FileServerHits.Store(0)
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.Write([]byte("Hits reset\n"))
+	platform := os.Getenv("PLATFORM")
+	cfg.Platform = platform
+	if cfg.Platform != "dev" {
+		w.WriteHeader(403)
+		log.Fatal("can only access this endpoint in a local dev environment")
+	}
+	err := cfg.DbQueries.DeleteAllUsers(r.Context())
+	if err != nil {
+		w.WriteHeader(500)
+		log.Fatalf("Error: %v\n", err)
+	}
 }
 
 func (cfg *ApiConfig) CreateUserHandler(w http.ResponseWriter, r *http.Request) {
@@ -49,5 +60,7 @@ func (cfg *ApiConfig) CreateUserHandler(w http.ResponseWriter, r *http.Request) 
 		log.Fatalf("Error: %v\n", err)
 	}
 
-	helpers.RespondWithJson(w, http.StatusCreated, user)
+	userToReturn := handlers.User{ID: user.ID, CreatedAt: user.CreatedAt, UpdatedAt: user.CreatedAt, Email: user.Email}
+
+	helpers.RespondWithJson(w, http.StatusCreated, userToReturn)
 }

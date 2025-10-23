@@ -13,7 +13,7 @@ import (
 	"github.com/rahullpanditaa/http-server/internal/handlers"
 )
 
-var apiCfg *config.ApiConfig
+var apiCfg config.ApiConfig
 
 func main() {
 	dbQueries := connectToDb()
@@ -48,6 +48,8 @@ func main() {
 func connectToDb() *database.Queries {
 	godotenv.Load()
 	dbUrl := os.Getenv("DB_URL")
+
+	// platform := os.Getenv("PLATFORM")
 
 	db, err := sql.Open("postgres", dbUrl)
 	if err != nil {
