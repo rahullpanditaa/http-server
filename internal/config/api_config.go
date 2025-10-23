@@ -1,6 +1,7 @@
 package config
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"strings"
 	"sync/atomic"
 
+	"github.com/google/uuid"
 	"github.com/rahullpanditaa/http-server/internal"
 	"github.com/rahullpanditaa/http-server/internal/database"
 	"github.com/rahullpanditaa/http-server/internal/handlers"
@@ -123,7 +125,47 @@ func (cfg *ApiConfig) HandlerReturnAllChirps(w http.ResponseWriter, r *http.Requ
 		chirpsToReturn = append(chirpsToReturn, c)
 	}
 
-	helpers.RespondWithJson(w, http.StatusCreated, chirpsToReturn)
+	helpers.RespondWithJson(w, http.StatusOK, chirpsToReturn)
+}
+
+func (cfg *ApiConfig) HandlerReturnChirpByID(w http.ResponseWriter, r *http.Request) {
+	// get chirp from table by id
+
+	// get user id from path
+	chirpIDStr := r.PathValue("chirpID")
+	if chirpIDStr == "" {
+		w.WriteHeader(500)
+		log.Fatalln("Error: could not get user ID from path")
+	}
+
+	chirpID, err := uuid.Parse(chirpIDStr)
+	if err != nil {
+		w.WriteHeader(500)
+		log.Fatalf("Error: %v\n", err)
+	}
+
+	chirp, err := cfg.DbQueries.GetChirpByID(r.Context(), chirpID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			w.WriteHeader(404)
+			log.Printf("Error: %v\n", err)
+			return
+			// log.Fatalf("Error: %v\n", err)
+		}
+		w.WriteHeader(500)
+		log.Printf("Error: %v\n", err)
+		return
+	}
+	chirpToReturn := handlers.Chirp{
+		ID:        chirp.ID,
+		CreatedAt: chirp.CreatedAt,
+		UpdatedAt: chirp.UpdatedAt,
+		Body:      chirp.Body,
+		UserID:    chirp.UserID,
+	}
+
+	helpers.RespondWithJson(w, http.StatusOK, chirpToReturn)
+
 }
 
 func checkForProfanity(sentence []string) string {

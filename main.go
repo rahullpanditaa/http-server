@@ -31,7 +31,7 @@ func main() {
 	mux.HandleFunc("POST /api/users", apiCfg.CreateUserHandler)
 	mux.HandleFunc("POST /api/chirps", apiCfg.ValidateChirpsHandler)
 	mux.HandleFunc("GET /api/chirps", apiCfg.HandlerReturnAllChirps)
-
+	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.HandlerReturnChirpByID)
 	// admin endpoint
 	mux.HandleFunc("GET /admin/metrics", apiCfg.NumberOfRequests)
 	mux.HandleFunc("POST /admin/reset", apiCfg.ResetHits)
