@@ -104,7 +104,26 @@ func (cfg *ApiConfig) ValidateChirpsHandler(w http.ResponseWriter, r *http.Reque
 }
 
 func (cfg *ApiConfig) HandlerReturnAllChirps(w http.ResponseWriter, r *http.Request) {
+	// get all chirps from table
+	allChirps, err := cfg.DbQueries.GetChirps(r.Context())
+	if err != nil {
+		w.WriteHeader(500)
+		log.Fatalf("Error: %v\n", err)
+	}
 
+	var chirpsToReturn []handlers.Chirp
+	for _, chirp := range allChirps {
+		c := handlers.Chirp{
+			ID:        chirp.ID,
+			CreatedAt: chirp.CreatedAt,
+			UpdatedAt: chirp.UpdatedAt,
+			Body:      chirp.Body,
+			UserID:    chirp.UserID,
+		}
+		chirpsToReturn = append(chirpsToReturn, c)
+	}
+
+	helpers.RespondWithJson(w, http.StatusCreated, chirpsToReturn)
 }
 
 func checkForProfanity(sentence []string) string {
