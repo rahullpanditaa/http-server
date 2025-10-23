@@ -43,7 +43,7 @@ func (cfg *ApiConfig) CreateUserHandler(w http.ResponseWriter, r *http.Request) 
 	// read from request body into user defined struct
 	email := helpers.ReadRequestJSON[handlers.User](w, r).Email
 
-	user, err := cfg.DbQueries.CreateUer(r.Context(), email)
+	user, err := cfg.DbQueries.CreateUser(r.Context(), email)
 	if err != nil {
 		w.WriteHeader(500)
 		log.Fatalf("Error: %v\n", err)
