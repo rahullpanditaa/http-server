@@ -28,9 +28,9 @@ func main() {
 
 	// api endpoint
 	mux.HandleFunc("GET /api/healthz", handlers.ApiHandlerHealth)
-	// mux.HandleFunc("POST /api/validate_chirp", handlers.ApiValidateChirpHandler)
 	mux.HandleFunc("POST /api/users", apiCfg.CreateUserHandler)
-	mux.HandleFunc("POST /api/chirps", handlers.ApiValidateChirpHandler)
+	mux.HandleFunc("POST /api/chirps", apiCfg.ValidateChirpsHandler)
+	mux.HandleFunc("GET /api/chirps", apiCfg.HandlerReturnAllChirps)
 
 	// admin endpoint
 	mux.HandleFunc("GET /admin/metrics", apiCfg.NumberOfRequests)
@@ -50,8 +50,6 @@ func main() {
 func connectToDb() *database.Queries {
 	godotenv.Load()
 	dbUrl := os.Getenv("DB_URL")
-
-	// platform := os.Getenv("PLATFORM")
 
 	db, err := sql.Open("postgres", dbUrl)
 	if err != nil {

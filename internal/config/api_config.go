@@ -101,6 +101,9 @@ func (cfg *ApiConfig) ValidateChirpsHandler(w http.ResponseWriter, r *http.Reque
 		helpers.RespondWithJson(w, http.StatusCreated, chirpResource)
 
 	}
+}
+
+func (cfg *ApiConfig) HandlerReturnAllChirps(w http.ResponseWriter, r *http.Request) {
 
 }
 
