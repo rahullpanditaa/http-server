@@ -5,77 +5,54 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
+	"github.com/rahullpanditaa/http-server/internal/config"
 	"github.com/rahullpanditaa/http-server/internal/database"
+	"github.com/rahullpanditaa/http-server/internal/handlers"
 )
 
-var (
-	metricsTemplate = `
-	<html>
-  		<body>
-    <h1>Welcome, Chirpy Admin</h1>
-    <p>Chirpy has been visited %d times!</p>
-  </body>
-</html>`
-)
+var apiCfg *config.ApiConfig
 
 func main() {
-	godotenv.Load()
-	dbURL := os.Getenv("DB_URL")
-	// open connection to db
-	db, err := sql.Open("postgres", dbURL)
-	if err != nil {
-		log.Fatal(err)
-	}
-	var apiCfg apiConfig
+	dbQueries := connectToDb()
 
-	dbQueries := database.New(db)
-	apiCfg.dbQueries = dbQueries
+	apiCfg.DbQueries = dbQueries
 
 	mux := http.NewServeMux()
 
-	readinessHandler := func(w http.ResponseWriter, req *http.Request) {
-		w.Header().Add("Content-Type", "text/plain; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
-	}
-
 	fileServerHandler := http.StripPrefix("/app", http.FileServer(http.Dir(".")))
 
-	mux.Handle("/app/", apiCfg.middlewareMetricsInc(fileServerHandler))
+	mux.Handle("/app/", apiCfg.MiddlewareMetricsInc(fileServerHandler))
 
 	// api endpoint
-	mux.HandleFunc("GET /api/healthz", readinessHandler)
-	mux.HandleFunc("POST /api/validate_chirp", validateChirpHandler)
-
+	mux.HandleFunc("GET /api/healthz", handlers.ApiHandlerHealth)
+	mux.HandleFunc("POST /api/validate_chirp", handlers.ApiValidateChirpHandler)
+	mux.HandleFunc("POST /api/users", apiCfg.CreateUserHandler)
 	// admin endpoint
-	mux.HandleFunc("GET /admin/metrics", apiCfg.numberOfRequests)
-	mux.HandleFunc("POST /admin/reset", apiCfg.resetHits)
+	mux.HandleFunc("GET /admin/metrics", apiCfg.NumberOfRequests)
+	mux.HandleFunc("POST /admin/reset", apiCfg.ResetHits)
 
 	server := &http.Server{
 		Addr:    ":8080",
 		Handler: mux,
 	}
 
-	err = server.ListenAndServe()
+	err := server.ListenAndServe()
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
-func validateChirpHandler(w http.ResponseWriter, r *http.Request) {
-	requestBody := readJSONRequest(w, r).RequestBody
+func connectToDb() *database.Queries {
+	godotenv.Load()
+	dbUrl := os.Getenv("DB_URL")
 
-	if len(requestBody) > 140 {
-		respondWithError(w, http.StatusBadRequest, "chirp length greater than 140 chars")
-	} else {
-		req_words := strings.Split(requestBody, " ")
-		cleaned := checkForProfanity(req_words)
-		resp := responseStruct{CleanedBody: cleaned}
-		respondWithJSON(w, http.StatusOK, resp)
-
+	db, err := sql.Open("postgres", dbUrl)
+	if err != nil {
+		log.Fatal(err)
 	}
+
+	return database.New(db)
 }
