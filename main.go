@@ -18,6 +18,9 @@ var apiCfg config.ApiConfig
 func main() {
 	dbQueries := connectToDb()
 
+	jwtSecretToken := os.Getenv("TOKEN_SECRET")
+	apiCfg.JWTToken = jwtSecretToken
+
 	apiCfg.DbQueries = dbQueries
 
 	mux := http.NewServeMux()
