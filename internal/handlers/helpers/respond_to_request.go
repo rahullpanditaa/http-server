@@ -17,7 +17,8 @@ func RespondWithError(w http.ResponseWriter, code int, msg string) {
 	body, err := json.Marshal(&errResp)
 	if err != nil {
 		w.WriteHeader(500)
-		log.Fatalf("Error: %v\n", err)
+		log.Printf("Error: %v\n", err)
+		return
 	}
 
 	// send a http response of json
@@ -32,7 +33,8 @@ func RespondWithJson(w http.ResponseWriter, code int, payload interface{}) {
 	body, err := json.Marshal(&payload)
 	if err != nil {
 		w.WriteHeader(500)
-		log.Fatalf("Error: %v\n", err)
+		log.Printf("Error: %v\n", err)
+		return
 	}
 
 	// send http response

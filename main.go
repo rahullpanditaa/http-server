@@ -29,6 +29,7 @@ func main() {
 	// api endpoint
 	mux.HandleFunc("GET /api/healthz", handlers.ApiHandlerHealth)
 	mux.HandleFunc("POST /api/users", apiCfg.CreateUserHandler)
+	mux.HandleFunc("POST /api/login", apiCfg.HandlerLogin)
 	mux.HandleFunc("POST /api/chirps", apiCfg.ValidateChirpsHandler)
 	mux.HandleFunc("GET /api/chirps", apiCfg.HandlerReturnAllChirps)
 	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.HandlerReturnChirpByID)

@@ -56,14 +56,15 @@ func (cfg *ApiConfig) ResetHits(w http.ResponseWriter, r *http.Request) {
 
 func (cfg *ApiConfig) CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 	// read from request body into user defined struct
-	email := helpers.ReadRequestJSON[handlers.User](w, r).Email
-
 	// user will now also send a plain text password
 	// in json request along with email
-	userSentPassword := helpers.ReadRequestJSON[handlers.User](w, r).Password
+	userDetailsSent := helpers.ReadRequestJSON[handlers.User](w, r)
+
+	emailInRequest := (*userDetailsSent).Email
+	passwordInRequest := (*userDetailsSent).Password
 
 	// hash the password
-	hashedPassword, err := auth.HashPassword(userSentPassword)
+	hashedPassword, err := auth.HashPassword(passwordInRequest)
 	if err != nil {
 		w.WriteHeader(500)
 		log.Printf("Error: %v\n", err)
@@ -72,7 +73,7 @@ func (cfg *ApiConfig) CreateUserHandler(w http.ResponseWriter, r *http.Request) 
 
 	user, err := cfg.DbQueries.CreateUser(r.Context(),
 		database.CreateUserParams{
-			Email:          email,
+			Email:          emailInRequest,
 			HashedPassword: hashedPassword,
 		},
 	)
@@ -86,7 +87,7 @@ func (cfg *ApiConfig) CreateUserHandler(w http.ResponseWriter, r *http.Request) 
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.CreatedAt,
 		Email:     user.Email,
-		Password:  userSentPassword,
+		Password:  passwordInRequest,
 	}
 
 	helpers.RespondWithJson(w, http.StatusCreated, userToReturn)

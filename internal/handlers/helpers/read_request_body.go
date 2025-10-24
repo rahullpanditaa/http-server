@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -13,11 +14,14 @@ func ReadRequestJSON[T any](w http.ResponseWriter, r *http.Request) *T {
 	var data T
 
 	// read from the body of the http request sent to server into a slice of bytes
-	body, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
+	body, err := io.ReadAll(r.Body)
+
 	if err != nil {
 		w.WriteHeader(500)
-		log.Fatalf("Error: %v\n", err)
+		fmt.Println("!!!")
+		log.Printf("Error: %v\n", err)
+		return nil
 	}
 
 	// decode slice of bytes into a pointer variable of type struct
