@@ -2,6 +2,7 @@ package config
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -22,7 +23,7 @@ type ApiConfig struct {
 	FileServerHits atomic.Int32
 	DbQueries      *database.Queries
 	Platform       string
-	JWTToken       string
+	TokenSecret    string
 }
 
 func (cfg *ApiConfig) MiddlewareMetricsInc(next http.Handler) http.Handler {
@@ -96,9 +97,31 @@ func (cfg *ApiConfig) CreateUserHandler(w http.ResponseWriter, r *http.Request) 
 
 func (cfg *ApiConfig) ValidateChirpsHandler(w http.ResponseWriter, r *http.Request) {
 	// read from request body
+	requestHeaders := r.Header
 	requestPayload := helpers.ReadRequestJSON[handlers.RequestParams](w, r)
 	requestBody := requestPayload.RequestBody
-	userID := requestPayload.UserID
+	// userID := requestPayload.UserID
+
+	// jwt token sent by user in request
+	// this needs to be validated
+	userTokenStringReceived, err := auth.GetBearerToken(requestHeaders)
+	if err != nil {
+		w.WriteHeader(500)
+		log.Printf("Error: %v\n", err)
+		return
+	}
+
+	userIDFromJWT, err := auth.ValidateJWT(userTokenStringReceived, cfg.TokenSecret)
+	if err != nil {
+		if errors.Is(err, errors.New("invalid token")) {
+			// w.WriteHeader(http.StatusUnauthorized)
+			helpers.RespondWithError(w, http.StatusUnauthorized, "JWT invalid")
+			return
+		}
+		w.WriteHeader(500)
+		log.Printf("Error: %v\n", err)
+		return
+	}
 
 	if len(requestBody) > 140 {
 		helpers.RespondWithError(w, http.StatusBadRequest, "chirp length greater than 140 chars")
@@ -110,12 +133,13 @@ func (cfg *ApiConfig) ValidateChirpsHandler(w http.ResponseWriter, r *http.Reque
 			r.Context(),
 			database.CreateChirpParams{
 				Body:   cleaned,
-				UserID: userID,
+				UserID: userIDFromJWT,
 			},
 		)
 		if err != nil {
 			w.WriteHeader(500)
-			log.Fatalf("Error: %v\n", err)
+			log.Printf("Error: %v\n", err)
+			return
 		}
 
 		chirpResource := handlers.Chirp{
@@ -123,7 +147,7 @@ func (cfg *ApiConfig) ValidateChirpsHandler(w http.ResponseWriter, r *http.Reque
 			CreatedAt: chirp.CreatedAt,
 			UpdatedAt: chirp.UpdatedAt,
 			Body:      chirp.Body,
-			UserID:    chirp.UserID,
+			UserID:    userIDFromJWT,
 		}
 
 		helpers.RespondWithJson(w, http.StatusCreated, chirpResource)

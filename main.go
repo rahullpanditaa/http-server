@@ -19,7 +19,7 @@ func main() {
 	dbQueries := connectToDb()
 
 	jwtSecretToken := os.Getenv("TOKEN_SECRET")
-	apiCfg.JWTToken = jwtSecretToken
+	apiCfg.TokenSecret = jwtSecretToken
 
 	apiCfg.DbQueries = dbQueries
 

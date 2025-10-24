@@ -45,7 +45,7 @@ func (cfg *ApiConfig) HandlerLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// create token
-	token, err := auth.MakeJWT(user.ID, cfg.JWTToken, time.Duration(expirationTimeReceived))
+	token, err := auth.MakeJWT(user.ID, cfg.TokenSecret, time.Duration(expirationTimeReceived)*time.Second)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Printf("Error: %v\n", err)
