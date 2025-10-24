@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"net/http"
 	"testing"
 	"time"
 
@@ -39,5 +40,19 @@ func TestJWT(t *testing.T) {
 		_, err = ValidateJWT(tokenString, "sssshhhh")
 		assertError(t, err, jwt.ErrTokenExpired)
 	})
+
+}
+
+func TestGetBearerTokens(t *testing.T) {
+	want := "blahblah"
+	headers := http.Header{
+		"Authorization": []string{"Bearer " + want},
+	}
+	got, err := GetBearerToken(headers)
+	assertError(t, err, nil)
+
+	if got != want {
+		t.Errorf("got %v, want %v", got, want)
+	}
 
 }
