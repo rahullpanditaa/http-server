@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/rahullpanditaa/http-server/internal"
+	"github.com/rahullpanditaa/http-server/internal/auth"
 	"github.com/rahullpanditaa/http-server/internal/database"
 	"github.com/rahullpanditaa/http-server/internal/handlers"
 	"github.com/rahullpanditaa/http-server/internal/handlers/helpers"
@@ -57,13 +58,36 @@ func (cfg *ApiConfig) CreateUserHandler(w http.ResponseWriter, r *http.Request) 
 	// read from request body into user defined struct
 	email := helpers.ReadRequestJSON[handlers.User](w, r).Email
 
-	user, err := cfg.DbQueries.CreateUser(r.Context(), email)
+	// user will now also send a plain text password
+	// in json request along with email
+	userSentPassword := helpers.ReadRequestJSON[handlers.User](w, r).Password
+
+	// hash the password
+	hashedPassword, err := auth.HashPassword(userSentPassword)
+	if err != nil {
+		w.WriteHeader(500)
+		log.Printf("Error: %v\n", err)
+		return
+	}
+
+	user, err := cfg.DbQueries.CreateUser(r.Context(),
+		database.CreateUserParams{
+			Email:          email,
+			HashedPassword: hashedPassword,
+		},
+	)
 	if err != nil {
 		w.WriteHeader(500)
 		log.Fatalf("Error: %v\n", err)
 	}
 
-	userToReturn := handlers.User{ID: user.ID, CreatedAt: user.CreatedAt, UpdatedAt: user.CreatedAt, Email: user.Email}
+	userToReturn := handlers.User{
+		ID:        user.ID,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.CreatedAt,
+		Email:     user.Email,
+		Password:  userSentPassword,
+	}
 
 	helpers.RespondWithJson(w, http.StatusCreated, userToReturn)
 }
