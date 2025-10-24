@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/alexedwards/argon2id"
@@ -32,9 +33,9 @@ func TestCheckHashPassword(t *testing.T) {
 	}
 }
 
-func assertError(t testing.TB, err_got, err_want error) {
+func assertError(t testing.TB, errGot, errWant error) {
 	t.Helper()
-	if err_got != err_want {
-		t.Errorf("got error %v, want %v", err_got, err_want)
+	if !errors.Is(errGot, errWant) {
+		t.Errorf("got %v, want %v", errGot, errWant)
 	}
 }
