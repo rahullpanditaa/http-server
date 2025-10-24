@@ -11,11 +11,11 @@ func TestHashPassword(t *testing.T) {
 	got, err := HashPassword(password)
 	assertError(t, err, nil)
 
-	want, err := argon2id.CreateHash(password, argon2id.DefaultParams)
+	match, err := argon2id.ComparePasswordAndHash(password, got)
 	assertError(t, err, nil)
 
-	if got != want {
-		t.Errorf("got hashed password: %v, want %v\n", got, want)
+	if !match {
+		t.Errorf("expected input password %v to match hash %v", password, got)
 	}
 }
 
