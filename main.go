@@ -9,37 +9,50 @@ import (
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"github.com/rahullpanditaa/http-server/internal/config"
+	"github.com/rahullpanditaa/http-server/internal/config/admin"
+	"github.com/rahullpanditaa/http-server/internal/config/api"
 	"github.com/rahullpanditaa/http-server/internal/database"
-	"github.com/rahullpanditaa/http-server/internal/handlers"
 )
 
-var apiCfg config.ApiConfig
-
 func main() {
+	// var apiCfg config.ApiConfig
+	// apiCfg = make(config.ApiConfig)
+
 	dbQueries := connectToDb()
-
 	jwtSecretToken := os.Getenv("TOKEN_SECRET")
-	apiCfg.TokenSecret = jwtSecretToken
 
-	apiCfg.DbQueries = dbQueries
+	cfg := &config.ApiConfig{
+		DbQueries:   dbQueries,
+		TokenSecret: jwtSecretToken,
+	}
+
+	apiCfgHandler := &api.ApiConfigHandler{
+		Cfg: cfg,
+	}
+
+	adminCfgHandler := &admin.ApiConfigHandler{
+		Cfg: cfg,
+	}
 
 	mux := http.NewServeMux()
 
 	fileServerHandler := http.StripPrefix("/app", http.FileServer(http.Dir(".")))
 
-	mux.Handle("/app/", apiCfg.MiddlewareMetricsInc(fileServerHandler))
+	mux.Handle("/app/", cfg.MiddlewareMetricsInc(fileServerHandler))
 
 	// api endpoint
-	mux.HandleFunc("GET /api/healthz", handlers.ApiHandlerHealth)
-	mux.HandleFunc("POST /api/users", apiCfg.CreateUserHandler)
-	mux.HandleFunc("POST /api/login", apiCfg.HandlerLogin)
-	mux.HandleFunc("POST /api/chirps", apiCfg.ValidateChirpsHandler)
-	mux.HandleFunc("POST /api/refresh", apiCfg.HandlerRefresh)
-	mux.HandleFunc("GET /api/chirps", apiCfg.HandlerReturnAllChirps)
-	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.HandlerReturnChirpByID)
+	mux.HandleFunc("GET /api/healthz", apiCfgHandler.HandlerHealth)
+	mux.HandleFunc("POST /api/users", apiCfgHandler.HandlerCreateUser)
+	mux.HandleFunc("POST /api/login", apiCfgHandler.HandlerLogin)
+	mux.HandleFunc("POST /api/chirps", apiCfgHandler.HandlerValidateChirps)
+	mux.HandleFunc("POST /api/refresh", apiCfgHandler.HandlerRefresh)
+	mux.HandleFunc("POST /api/revoke", apiCfgHandler.HandlerRevoke)
+
+	mux.HandleFunc("GET /api/chirps", apiCfgHandler.HandlerReturnAllChirps)
+	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfgHandler.HandlerReturnChirpByID)
 	// admin endpoint
-	mux.HandleFunc("GET /admin/metrics", apiCfg.NumberOfRequests)
-	mux.HandleFunc("POST /admin/reset", apiCfg.ResetHits)
+	mux.HandleFunc("GET /admin/metrics", adminCfgHandler.HandlerNumberOfRequests)
+	mux.HandleFunc("POST /admin/reset", adminCfgHandler.HandlerResetHits)
 
 	server := &http.Server{
 		Addr:    ":8080",
