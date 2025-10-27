@@ -19,7 +19,6 @@ func (handler *ApiConfigHandler) HandlerRefresh(w http.ResponseWriter, r *http.R
 	refreshTokenReceived, err := auth.GetBearerToken(r.Header)
 	if err != nil {
 		helpers.RespondWithError(w, http.StatusBadRequest, "Authorization header not found")
-		helpers.LogErrorWithRequest(err, r, "Authorization header not found")
 		return
 	}
 
@@ -27,6 +26,7 @@ func (handler *ApiConfigHandler) HandlerRefresh(w http.ResponseWriter, r *http.R
 	if err != nil {
 		// check if err is because no rows returned
 		if err == sql.ErrNoRows {
+			// refresh token does not exist
 			helpers.RespondWithError(w, http.StatusUnauthorized, "invalid refresh token")
 			return
 		}
@@ -34,10 +34,23 @@ func (handler *ApiConfigHandler) HandlerRefresh(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	// check if refresh_token is expired
+	if time.Now().UTC().After(refreshToken.ExpiresAt) {
+		// token has expired
+		helpers.RespondWithError(w, http.StatusUnauthorized, "refresh token has expired")
+		return
+	}
+
+	// check if refresh token has been revoked
+	if refreshToken.RevokedAt.Valid {
+		helpers.RespondWithError(w, http.StatusUnauthorized, "refresh token has expired")
+		return
+	}
+
 	userID := refreshToken.UserID
 
 	// create new jwt
-	jwt, err := auth.MakeJWT(userID, handler.Cfg.TokenSecret, time.Hour)
+	jwt, err := auth.MakeJWT(userID, handler.Cfg.TokenSecret)
 	if err != nil {
 		helpers.RespondWithError(w, http.StatusInternalServerError, "cannot create a JWT")
 		helpers.LogErrorWithRequest(err, r, "cannot create a JWT")

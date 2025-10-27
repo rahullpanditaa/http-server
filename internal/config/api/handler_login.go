@@ -2,7 +2,6 @@ package api
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/rahullpanditaa/http-server/internal/auth"
 	"github.com/rahullpanditaa/http-server/internal/config"
@@ -43,8 +42,8 @@ func (handler *ApiConfigHandler) HandlerLogin(w http.ResponseWriter, r *http.Req
 
 	// create jwt access token
 	// expiration time for jwt - 1 hour
-	JWTExpirationTime := int(time.Hour.Seconds())
-	token, err := auth.MakeJWT(user.ID, handler.Cfg.TokenSecret, time.Duration(JWTExpirationTime)*time.Second)
+	// JWTExpirationTime := int(time.Hour.Seconds())
+	token, err := auth.MakeJWT(user.ID, handler.Cfg.TokenSecret)
 	if err != nil {
 		helpers.RespondWithError(w, http.StatusInternalServerError, "unable to create a JWT")
 		helpers.LogErrorWithRequest(err, r, "unable to create a JWT")
