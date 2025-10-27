@@ -27,3 +27,18 @@ func LogErrorWithRequest(err error, r *http.Request, message string) {
 		message, err, fnName, file, line, r.Method, r.URL.Path,
 	)
 }
+
+func LogError(err error, msg string) {
+	if err == nil {
+		return
+	}
+
+	pc, file, line, ok := runtime.Caller(1)
+	if !ok {
+		log.Printf("[ERROR] %s: %v", msg, err)
+		return
+	}
+
+	fn := runtime.FuncForPC(pc).Name()
+	log.Printf("[ERROR] %s:%d | %s | %s: %v", file, line, fn, msg, err)
+}
