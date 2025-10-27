@@ -19,7 +19,7 @@ type polkaRequest struct {
 func (handler *ApiConfigHandler) HandlerUpdateUserChirpyRed(w http.ResponseWriter, r *http.Request) {
 	apiKeyReceived, err := auth.GetAPIKey(r.Header)
 	if err != nil {
-		helpers.RespondWithError(w, http.StatusBadRequest, "invalid api key received")
+		helpers.RespondWithError(w, http.StatusUnauthorized, "invalid api key received")
 		return
 	}
 	if apiKeyReceived != handler.Cfg.ApiPolkaKey {
