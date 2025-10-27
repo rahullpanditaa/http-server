@@ -19,6 +19,7 @@ func main() {
 	dbQueries := connectToDb()
 	jwtSecretToken := os.Getenv("TOKEN_SECRET")
 	platform := os.Getenv("PLATFORM")
+	polkaApiKey := os.Getenv("POLKA_KEY")
 
 	fileServerHandler := http.StripPrefix("/app", http.FileServer(http.Dir(".")))
 
@@ -26,6 +27,7 @@ func main() {
 		DbQueries:   dbQueries,
 		TokenSecret: jwtSecretToken,
 		Platform:    platform,
+		ApiPolkaKey: polkaApiKey,
 	}
 	apiCfgHandler := &api.ApiConfigHandler{
 		Cfg: cfg,
