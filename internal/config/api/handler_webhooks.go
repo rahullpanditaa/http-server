@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/rahullpanditaa/http-server/internal/auth"
 	"github.com/rahullpanditaa/http-server/internal/helpers"
 )
 
@@ -16,6 +17,15 @@ type polkaRequest struct {
 }
 
 func (handler *ApiConfigHandler) HandlerUpdateUserChirpyRed(w http.ResponseWriter, r *http.Request) {
+	apiKeyReceived, err := auth.GetAPIKey(r.Header)
+	if err != nil {
+		helpers.RespondWithError(w, http.StatusBadRequest, "invalid api key received")
+		return
+	}
+	if apiKeyReceived != handler.Cfg.ApiPolkaKey {
+		helpers.RespondWithError(w, http.StatusUnauthorized, "invalid api key")
+		return
+	}
 	webhookRequestBody := helpers.ReadRequestJSON[polkaRequest](w, r)
 	eventReceived := webhookRequestBody.Event
 	if eventReceived != "user.upgraded" {
