@@ -132,7 +132,7 @@ func (handler *ApiConfigHandler) HandlerReturnChirpByID(w http.ResponseWriter, r
 	chirp, err := handler.Cfg.DbQueries.GetChirpByID(r.Context(), chirpID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			helpers.RespondWithError(w, http.StatusUnauthorized, "invalid chirp ID")
+			helpers.RespondWithError(w, http.StatusNotFound, "invalid chirp ID")
 			return
 		}
 		helpers.RespondWithError(w, http.StatusInternalServerError, "cannot retreive chirp from db")
