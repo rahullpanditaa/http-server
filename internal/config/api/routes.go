@@ -11,4 +11,6 @@ func (handler *ApiConfigHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/revoke", handler.HandlerRevoke)
 	mux.HandleFunc("GET /api/chirps", handler.HandlerReturnAllChirps)
 	mux.HandleFunc("GET /api/chirps/{chirpID}", handler.HandlerReturnChirpByID)
+
+	mux.HandleFunc("PUT /api/users", handler.HandlerUpdateUserDetails)
 }

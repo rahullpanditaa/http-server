@@ -7,6 +7,8 @@ package database
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -14,25 +16,18 @@ INSERT INTO "users" (
     "id", 
     "created_at", 
     "updated_at", 
-    "email", 
-    "hashed_password"
+    "email"
 ) VALUES (
     gen_random_uuid(),
     NOW(),
     NOW(),
-    $1,
-    $2
+    $1
 )
 RETURNING id, created_at, updated_at, email, hashed_password
 `
 
-type CreateUserParams struct {
-	Email          string
-	HashedPassword string
-}
-
-func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, createUser, arg.Email, arg.HashedPassword)
+func (q *Queries) CreateUser(ctx context.Context, email string) (User, error) {
+	row := q.db.QueryRowContext(ctx, createUser, email)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -69,4 +64,43 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.HashedPassword,
 	)
 	return i, err
+}
+
+const getUserByRefreshToken = `-- name: GetUserByRefreshToken :one
+SELECT id, created_at, updated_at, email, hashed_password FROM "users"
+WHERE "id" = (
+    SELECT "user_id" FROM "refresh_tokens"
+    WHERE "token" = $1
+)
+`
+
+func (q *Queries) GetUserByRefreshToken(ctx context.Context, token string) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByRefreshToken, token)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Email,
+		&i.HashedPassword,
+	)
+	return i, err
+}
+
+const updateUserDetails = `-- name: UpdateUserDetails :exec
+UPDATE "users"
+SET "email" = $1,
+    "hashed_password" = $2
+WHERE "id" = $3
+`
+
+type UpdateUserDetailsParams struct {
+	Email          string
+	HashedPassword string
+	ID             uuid.UUID
+}
+
+func (q *Queries) UpdateUserDetails(ctx context.Context, arg UpdateUserDetailsParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserDetails, arg.Email, arg.HashedPassword, arg.ID)
+	return err
 }
