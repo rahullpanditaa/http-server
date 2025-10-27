@@ -14,4 +14,6 @@ func (handler *ApiConfigHandler) RegisterRoutes(mux *http.ServeMux) {
 
 	mux.HandleFunc("PUT /api/users", handler.HandlerUpdateUserDetails)
 	mux.HandleFunc("DELETE /api/chirps/{chirpID}", handler.HandlerDeleteChirpByID)
+
+	mux.HandleFunc("POST /api/polka/webhooks", handler.HandlerUpdateUserChirpyRed)
 }

@@ -133,3 +133,14 @@ func (q *Queries) UpdateUserDetails(ctx context.Context, arg UpdateUserDetailsPa
 	_, err := q.db.ExecContext(ctx, updateUserDetails, arg.Email, arg.HashedPassword, arg.ID)
 	return err
 }
+
+const upgradeUserToChirpyRed = `-- name: UpgradeUserToChirpyRed :exec
+UPDATE "users"
+SET "is_chirpy_red" = TRUE
+WHERE "id" = $1
+`
+
+func (q *Queries) UpgradeUserToChirpyRed(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, upgradeUserToChirpyRed, id)
+	return err
+}
