@@ -40,11 +40,12 @@ func (handler *ApiConfigHandler) HandlerCreateUser(w http.ResponseWriter, r *htt
 	}
 
 	userToReturn := config.User{
-		ID:        user.ID,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.CreatedAt,
-		Email:     user.Email,
-		Password:  passwordInRequest,
+		ID:          user.ID,
+		CreatedAt:   user.CreatedAt,
+		UpdatedAt:   user.CreatedAt,
+		Email:       user.Email,
+		Password:    passwordInRequest,
+		IsChirpyRed: user.IsChirpyRed.Bool,
 	}
 
 	helpers.RespondWithJson(w, http.StatusCreated, userToReturn)

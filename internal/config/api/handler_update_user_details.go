@@ -60,10 +60,11 @@ func (handler *ApiConfigHandler) HandlerUpdateUserDetails(w http.ResponseWriter,
 	}
 
 	userToReturn := config.User{
-		ID:        user.ID,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: time.Now().UTC(),
-		Email:     newEmailReceievedFromUser,
+		ID:          user.ID,
+		CreatedAt:   user.CreatedAt,
+		UpdatedAt:   time.Now().UTC(),
+		Email:       newEmailReceievedFromUser,
+		IsChirpyRed: user.IsChirpyRed.Bool,
 	}
 
 	helpers.RespondWithJson(w, http.StatusOK, userToReturn)

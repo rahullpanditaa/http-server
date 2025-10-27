@@ -72,6 +72,7 @@ func (handler *ApiConfigHandler) HandlerLogin(w http.ResponseWriter, r *http.Req
 		Email:        user.Email,
 		Token:        token,
 		RefreshToken: refreshToken.Token,
+		IsChirpyRed:  user.IsChirpyRed.Bool,
 	}
 
 	helpers.RespondWithJson(w, 200, userToReturn)

@@ -37,16 +37,7 @@ func (handler *ApiConfigHandler) HandlerValidateChirps(w http.ResponseWriter, r 
 	userIDFromJWT, err := auth.ValidateJWT(userTokenStringReceived, handler.Cfg.TokenSecret)
 	if err != nil {
 		helpers.RespondWithError(w, http.StatusUnauthorized, "JWT invalid")
-		// helpers.LogErrorWithRequest(err, r, "JWT invalid")
 		return
-		// if errors.Is(err, auth.ErrInvalidToken) {
-		// 	helpers.RespondWithError(w, http.StatusUnauthorized, "JWT invalid")
-		// 	helpers.LogErrorWithRequest(err, r, "JWT invalid")
-		// 	return
-		// }
-		// helpers.RespondWithError(w, 500, "")
-		// helpers.LogErrorWithRequest(err, r, "error occurred while validating JWT")
-		// return
 	}
 
 	if len(requestBody) > 140 {

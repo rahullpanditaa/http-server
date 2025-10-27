@@ -48,6 +48,7 @@ func (handler *ApiConfigHandler) HandlerRefresh(w http.ResponseWriter, r *http.R
 	}
 
 	userID := refreshToken.UserID
+	// user, err := handler.Cfg.DbQueries.GetUserByRefreshToken(r.Context(), refreshToken.Token)
 
 	// create new jwt
 	jwt, err := auth.MakeJWT(userID, handler.Cfg.TokenSecret)
