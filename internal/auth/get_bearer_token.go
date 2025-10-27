@@ -6,12 +6,18 @@ import (
 	"strings"
 )
 
-func GetBearerToken(headers http.Header) (string, error) {
-	// in request -> header: Authorization, Bearer TOKEN_STRING
-	authHeaderInfo := headers.Get("Authorization")
-	if authHeaderInfo == "" {
-		return "", fmt.Errorf("authorization header does not exist")
+func GetBearerToken(h http.Header) (string, error) {
+	v := h.Get("Authorization")
+	if v == "" {
+		return "", fmt.Errorf("authorization header not found")
 	}
-	tokenString := strings.TrimSpace(strings.Replace(authHeaderInfo, "Bearer", "", 1))
-	return tokenString, nil
+	parts := strings.Fields(v)
+	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
+		return "", fmt.Errorf("invalid authorization header format")
+	}
+	tok := strings.TrimSpace(parts[1])
+	if tok == "" {
+		return "", fmt.Errorf("empty bearer token")
+	}
+	return tok, nil
 }
