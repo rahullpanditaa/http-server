@@ -1,14 +1,13 @@
 package api
 
 import (
-	"log"
 	"net/http"
 	"time"
 
 	"github.com/rahullpanditaa/http-server/internal/auth"
+	"github.com/rahullpanditaa/http-server/internal/config"
 	"github.com/rahullpanditaa/http-server/internal/database"
-	"github.com/rahullpanditaa/http-server/internal/handlers"
-	"github.com/rahullpanditaa/http-server/internal/handlers/helpers"
+	"github.com/rahullpanditaa/http-server/internal/helpers"
 )
 
 // HandlerLogin is the handler function for the endpoint POST /api/login.
@@ -20,16 +19,15 @@ import (
 // Send back a JSON response which includes the JWT and the refresh token.
 func (handler *ApiConfigHandler) HandlerLogin(w http.ResponseWriter, r *http.Request) {
 	// accept password and email in request body
-	userReceivedInRequest := helpers.ReadRequestJSON[handlers.User](w, r)
+	userReceivedInRequest := helpers.ReadRequestJSON[config.User](w, r)
 	emailReceived := userReceivedInRequest.Email
 	passwordReceived := userReceivedInRequest.Password
 
 	// get user by email
-	user, err := handler.cfg.DbQueries.GetUserByEmail(r.Context(), emailReceived)
+	user, err := handler.Cfg.DbQueries.GetUserByEmail(r.Context(), emailReceived)
 	if err != nil {
-		helpers.RespondWithError(w, 401, "incorrect email or password")
-		log.Printf("Error: %v\n", err)
-		log.Println("Method erred: HandlerLogin", "File: api/handler_login.go", 1)
+		helpers.RespondWithError(w, http.StatusInternalServerError, "incorrect email or password")
+		helpers.LogErrorWithRequest(err, r, "incorrect email or password")
 		return
 	}
 
@@ -38,26 +36,24 @@ func (handler *ApiConfigHandler) HandlerLogin(w http.ResponseWriter, r *http.Req
 	// check if passwords match
 	match, err := auth.CheckPasswordHash(passwordReceived, userHashedPswdInDb)
 	if err != nil || !match {
-		helpers.RespondWithError(w, 401, "invalid email or password")
-		log.Printf("Error: %v\n", err)
-		log.Println("Method erred: HandlerLogin", "File: api/handler_login.go", 2)
+		helpers.RespondWithError(w, http.StatusUnauthorized, "invalid email or password")
+		helpers.LogErrorWithRequest(err, r, "invalid email or password")
 		return
 	}
 
 	// create jwt access token
 	// expiration time for jwt - 1 hour
 	JWTExpirationTime := int(time.Hour.Seconds())
-	token, err := auth.MakeJWT(user.ID, handler.cfg.TokenSecret, time.Duration(JWTExpirationTime)*time.Second)
+	token, err := auth.MakeJWT(user.ID, handler.Cfg.TokenSecret, time.Duration(JWTExpirationTime)*time.Second)
 	if err != nil {
-		helpers.RespondWithError(w, 500, err.Error())
-		log.Printf("Error: %v\n", err)
-		log.Println("Method erred: HandlerLogin", "File: api/handler_login.go", 3)
+		helpers.RespondWithError(w, http.StatusInternalServerError, "unable to create a JWT")
+		helpers.LogErrorWithRequest(err, r, "unable to create a JWT")
 		return
 	}
 
 	// create refresh token
 	refreshTokenStr, _ := auth.MakeRefreshToken()
-	refreshToken, err := handler.cfg.DbQueries.CreateRefreshToken(
+	refreshToken, err := handler.Cfg.DbQueries.CreateRefreshToken(
 		r.Context(),
 		database.CreateRefreshTokenParams{
 			Token:  refreshTokenStr,
@@ -65,13 +61,12 @@ func (handler *ApiConfigHandler) HandlerLogin(w http.ResponseWriter, r *http.Req
 		},
 	)
 	if err != nil {
-		helpers.RespondWithError(w, 500, "error creating refresh token")
-		log.Printf("Error: %v\n", err)
-		log.Println("Method erred: HandlerLogin", "File: api/handler_login.go", 4)
+		helpers.RespondWithError(w, http.StatusInternalServerError, "error creating refresh token")
+		helpers.LogErrorWithRequest(err, r, "error creating refresh token")
 		return
 	}
 
-	userToReturn := handlers.User{
+	userToReturn := config.User{
 		ID:           user.ID,
 		CreatedAt:    user.CreatedAt,
 		UpdatedAt:    user.UpdatedAt,

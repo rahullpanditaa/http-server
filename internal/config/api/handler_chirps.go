@@ -10,8 +10,7 @@ import (
 	"github.com/rahullpanditaa/http-server/internal/auth"
 	"github.com/rahullpanditaa/http-server/internal/config"
 	"github.com/rahullpanditaa/http-server/internal/database"
-	"github.com/rahullpanditaa/http-server/internal/handlers/helpers"
-	helpers_temp "github.com/rahullpanditaa/http-server/internal/helpers"
+	"github.com/rahullpanditaa/http-server/internal/helpers"
 )
 
 // HandlerValidateChirps is the handler function for the endpoint POST /api/chirps.
@@ -23,7 +22,7 @@ import (
 // Return the details of chirp created in a JSON response.
 func (handler *ApiConfigHandler) HandlerValidateChirps(w http.ResponseWriter, r *http.Request) {
 	// requestPayload := helpers.[handlers.RequestParams](w, r)
-	requestPayload := helpers_temp.ReadRequestJSON[config.RequestParams](w, r)
+	requestPayload := helpers.ReadRequestJSON[config.RequestParams](w, r)
 	requestBody := requestPayload.RequestBody
 	requestHeaders := r.Header
 
@@ -31,20 +30,20 @@ func (handler *ApiConfigHandler) HandlerValidateChirps(w http.ResponseWriter, r 
 	userTokenStringReceived, err := auth.GetBearerToken(requestHeaders)
 	if err != nil {
 		helpers.RespondWithError(w, http.StatusBadRequest, "invalid header sent")
-		helpers_temp.LogErrorWithRequest(err, r, "invalid header in request")
+		helpers.LogErrorWithRequest(err, r, "invalid header in request")
 		return
 	}
 
 	// validate jwt sent by user
-	userIDFromJWT, err := auth.ValidateJWT(userTokenStringReceived, handler.cfg.TokenSecret)
+	userIDFromJWT, err := auth.ValidateJWT(userTokenStringReceived, handler.Cfg.TokenSecret)
 	if err != nil {
 		if errors.Is(err, auth.ErrInvalidToken) {
 			helpers.RespondWithError(w, http.StatusUnauthorized, "JWT invalid")
-			helpers_temp.LogErrorWithRequest(err, r, "JWT invalid")
+			helpers.LogErrorWithRequest(err, r, "JWT invalid")
 			return
 		}
 		helpers.RespondWithError(w, 500, "")
-		helpers_temp.LogErrorWithRequest(err, r, "error occurred while validating JWT")
+		helpers.LogErrorWithRequest(err, r, "error occurred while validating JWT")
 		return
 	}
 
@@ -56,7 +55,7 @@ func (handler *ApiConfigHandler) HandlerValidateChirps(w http.ResponseWriter, r 
 	req_words := strings.Split(requestBody, " ")
 	cleaned := checkForProfanity(req_words)
 
-	chirp, err := handler.cfg.DbQueries.CreateChirp(
+	chirp, err := handler.Cfg.DbQueries.CreateChirp(
 		r.Context(),
 		database.CreateChirpParams{
 			Body:   cleaned,
@@ -65,11 +64,11 @@ func (handler *ApiConfigHandler) HandlerValidateChirps(w http.ResponseWriter, r 
 	)
 	if err != nil {
 		helpers.RespondWithError(w, http.StatusInternalServerError, "cannot create a chir")
-		helpers_temp.LogErrorWithRequest(err, r, "cannot create a chirp")
+		helpers.LogErrorWithRequest(err, r, "cannot create a chirp")
 		return
 	}
 
-	chirpResource := handlers.Chirp{
+	chirpResource := config.Chirp{
 		ID:        chirp.ID,
 		CreatedAt: chirp.CreatedAt,
 		UpdatedAt: chirp.UpdatedAt,
@@ -86,16 +85,16 @@ func (handler *ApiConfigHandler) HandlerValidateChirps(w http.ResponseWriter, r 
 // Sends back a JSON response with a slice of all the chirps in db.
 func (handler *ApiConfigHandler) HandlerReturnAllChirps(w http.ResponseWriter, r *http.Request) {
 	// get all chirps from table
-	allChirps, err := handler.cfg.DbQueries.GetChirps(r.Context())
+	allChirps, err := handler.Cfg.DbQueries.GetChirps(r.Context())
 	if err != nil {
 		helpers.RespondWithError(w, http.StatusInternalServerError, "cannot retreive chirps from db")
-		helpers_temp.LogErrorWithRequest(err, r, "cannot retreive chirps from db")
+		helpers.LogErrorWithRequest(err, r, "cannot retreive chirps from db")
 		return
 	}
 
-	var chirpsToReturn []handlers.Chirp
+	var chirpsToReturn []config.Chirp
 	for _, chirp := range allChirps {
-		c := handlers.Chirp{
+		c := config.Chirp{
 			ID:        chirp.ID,
 			CreatedAt: chirp.CreatedAt,
 			UpdatedAt: chirp.UpdatedAt,
@@ -124,22 +123,22 @@ func (handler *ApiConfigHandler) HandlerReturnChirpByID(w http.ResponseWriter, r
 	chirpID, err := uuid.Parse(chirpIDStr)
 	if err != nil {
 		helpers.RespondWithError(w, http.StatusInternalServerError, "cannot parse given chirpID into a uuid")
-		helpers_temp.LogErrorWithRequest(err, r, "cannot parse given chirpID into a uuid")
+		helpers.LogErrorWithRequest(err, r, "cannot parse given chirpID into a uuid")
 		return
 	}
 
-	chirp, err := handler.cfg.DbQueries.GetChirpByID(r.Context(), chirpID)
+	chirp, err := handler.Cfg.DbQueries.GetChirpByID(r.Context(), chirpID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			helpers.RespondWithError(w, http.StatusUnauthorized, "invalid chirp ID")
 			return
 		}
 		helpers.RespondWithError(w, http.StatusInternalServerError, "cannot retreive chirp from db")
-		helpers_temp.LogErrorWithRequest(err, r, "cannot retreive chirp from db")
+		helpers.LogErrorWithRequest(err, r, "cannot retreive chirp from db")
 		return
 	}
 
-	chirpToReturn := handlers.Chirp{
+	chirpToReturn := config.Chirp{
 		ID:        chirp.ID,
 		CreatedAt: chirp.CreatedAt,
 		UpdatedAt: chirp.UpdatedAt,

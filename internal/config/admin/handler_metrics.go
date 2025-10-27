@@ -8,7 +8,7 @@ import (
 
 	"github.com/rahullpanditaa/http-server/internal"
 	"github.com/rahullpanditaa/http-server/internal/config"
-	helpers_temp "github.com/rahullpanditaa/http-server/internal/helpers"
+	"github.com/rahullpanditaa/http-server/internal/helpers"
 )
 
 type ApiConfigHandler struct {
@@ -36,7 +36,7 @@ func (handler *ApiConfigHandler) HandlerResetHits(w http.ResponseWriter, r *http
 	err := handler.Cfg.DbQueries.DeleteAllUsers(r.Context())
 	if err != nil {
 		helpers.RespondWithError(w, http.StatusInternalServerError, "unable to delete all users")
-		helpers_temp.LogErrorWithRequest(err, r, "unable to delete all users")
+		helpers.LogErrorWithRequest(err, r, "unable to delete all users")
 		return
 	}
 }

@@ -15,44 +15,30 @@ import (
 )
 
 func main() {
-	// var apiCfg config.ApiConfig
-	// apiCfg = make(config.ApiConfig)
-
+	godotenv.Load()
 	dbQueries := connectToDb()
 	jwtSecretToken := os.Getenv("TOKEN_SECRET")
+	platform := os.Getenv("PLATFORM")
+
+	fileServerHandler := http.StripPrefix("/app", http.FileServer(http.Dir(".")))
 
 	cfg := &config.ApiConfig{
 		DbQueries:   dbQueries,
 		TokenSecret: jwtSecretToken,
+		Platform:    platform,
 	}
-
 	apiCfgHandler := &api.ApiConfigHandler{
 		Cfg: cfg,
 	}
-
 	adminCfgHandler := &admin.ApiConfigHandler{
 		Cfg: cfg,
 	}
 
 	mux := http.NewServeMux()
-
-	fileServerHandler := http.StripPrefix("/app", http.FileServer(http.Dir(".")))
-
 	mux.Handle("/app/", cfg.MiddlewareMetricsInc(fileServerHandler))
 
-	// api endpoint
-	mux.HandleFunc("GET /api/healthz", apiCfgHandler.HandlerHealth)
-	mux.HandleFunc("POST /api/users", apiCfgHandler.HandlerCreateUser)
-	mux.HandleFunc("POST /api/login", apiCfgHandler.HandlerLogin)
-	mux.HandleFunc("POST /api/chirps", apiCfgHandler.HandlerValidateChirps)
-	mux.HandleFunc("POST /api/refresh", apiCfgHandler.HandlerRefresh)
-	mux.HandleFunc("POST /api/revoke", apiCfgHandler.HandlerRevoke)
-
-	mux.HandleFunc("GET /api/chirps", apiCfgHandler.HandlerReturnAllChirps)
-	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfgHandler.HandlerReturnChirpByID)
-	// admin endpoint
-	mux.HandleFunc("GET /admin/metrics", adminCfgHandler.HandlerNumberOfRequests)
-	mux.HandleFunc("POST /admin/reset", adminCfgHandler.HandlerResetHits)
+	apiCfgHandler.RegisterRoutes(mux)
+	adminCfgHandler.RegisterRoutes(mux)
 
 	server := &http.Server{
 		Addr:    ":8080",
@@ -66,7 +52,6 @@ func main() {
 }
 
 func connectToDb() *database.Queries {
-	godotenv.Load()
 	dbUrl := os.Getenv("DB_URL")
 
 	db, err := sql.Open("postgres", dbUrl)

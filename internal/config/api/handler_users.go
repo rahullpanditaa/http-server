@@ -1,13 +1,12 @@
 package api
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/rahullpanditaa/http-server/internal/auth"
+	"github.com/rahullpanditaa/http-server/internal/config"
 	"github.com/rahullpanditaa/http-server/internal/database"
-	"github.com/rahullpanditaa/http-server/internal/handlers"
-	"github.com/rahullpanditaa/http-server/internal/handlers/helpers"
+	"github.com/rahullpanditaa/http-server/internal/helpers"
 )
 
 // HandlerCreateUser is the handler function for the endpoint POST /api/users.
@@ -16,33 +15,31 @@ import (
 // create a new user in users table in chirpy database using received email and hashed password
 // send back a json response with details of user created in previous step
 func (handler *ApiConfigHandler) HandlerCreateUser(w http.ResponseWriter, r *http.Request) {
-	userDetailsReceived := helpers.ReadRequestJSON[handlers.User](w, r)
+	userDetailsReceived := helpers.ReadRequestJSON[config.User](w, r)
 
 	emailInRequest := userDetailsReceived.Email
 	passwordInRequest := userDetailsReceived.Password
 
 	hashedPassword, err := auth.HashPassword(passwordInRequest)
 	if err != nil {
-		helpers.RespondWithError(w, 500, "unable to hash given password")
-		log.Printf("Error: %v\n", err)
-		log.Println("Method erred: HandlerCreateUser", "File: handler_users.go", "1")
+		helpers.RespondWithError(w, http.StatusInternalServerError, "unable to hash given password")
+		helpers.LogErrorWithRequest(err, r, "unable to hash given password")
 		return
 	}
 
-	user, err := handler.cfg.DbQueries.CreateUser(r.Context(),
+	user, err := handler.Cfg.DbQueries.CreateUser(r.Context(),
 		database.CreateUserParams{
 			Email:          emailInRequest,
 			HashedPassword: hashedPassword,
 		},
 	)
 	if err != nil {
-		helpers.RespondWithError(w, 500, "database err, cannot create a user record")
-		log.Printf("Error: %v\n", err)
-		log.Println("Method erred: HandlerCreateUser", "File: handler_users.go", "2")
+		helpers.RespondWithError(w, 500, "database error, cannot create a user record")
+		helpers.LogErrorWithRequest(err, r, "database error, cannot create a user record")
 		return
 	}
 
-	userToReturn := handlers.User{
+	userToReturn := config.User{
 		ID:        user.ID,
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.CreatedAt,
