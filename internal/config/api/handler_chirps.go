@@ -77,6 +77,46 @@ func (handler *ApiConfigHandler) HandlerValidateChirps(w http.ResponseWriter, r 
 // Retreives all the chirps from chirps table in db.
 // Sends back a JSON response with a slice of all the chirps in db.
 func (handler *ApiConfigHandler) HandlerReturnAllChirps(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
+	// get author_id query parameter
+	authorIDInQueryParam := r.URL.Query().Get("author_id")
+	if authorIDInQueryParam != "" {
+		// some author id given
+		authorID := uuid.MustParse(authorIDInQueryParam)
+		u, err := handler.Cfg.DbQueries.GetUserByID(r.Context(), authorID)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				// author/user does not exist
+				helpers.RespondWithError(w, http.StatusNotFound, "user does not exist")
+				return
+			}
+			helpers.LogError(err, "unable to retreive user from db")
+			return
+		}
+		chirpsAuthored, err := handler.Cfg.DbQueries.GetAllChirpsForGivenUser(r.Context(), u.ID)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				helpers.RespondWithError(w, http.StatusNotFound, "user has no chirps")
+				return
+			}
+			helpers.LogError(err, "unable to get chirps for given user id")
+			return
+		}
+		var userChirps []config.Chirp
+		for _, chirp := range chirpsAuthored {
+			c := config.Chirp{
+				ID: chirp.ID, CreatedAt: chirp.CreatedAt,
+				UpdatedAt: chirp.UpdatedAt,
+				Body:      chirp.Body,
+				UserID:    chirp.UserID,
+			}
+			userChirps = append(userChirps, c)
+		}
+		helpers.RespondWithJson(w, http.StatusOK, userChirps)
+		return
+	}
+
 	// get all chirps from table
 	allChirps, err := handler.Cfg.DbQueries.GetChirps(r.Context())
 	if err != nil {
