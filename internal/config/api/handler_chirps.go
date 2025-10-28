@@ -3,6 +3,7 @@ package api
 import (
 	"database/sql"
 	"net/http"
+	"sort"
 	"strings"
 
 	"github.com/google/uuid"
@@ -79,6 +80,17 @@ func (handler *ApiConfigHandler) HandlerValidateChirps(w http.ResponseWriter, r 
 func (handler *ApiConfigHandler) HandlerReturnAllChirps(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
+	sortParam := r.URL.Query().Get("sort")
+	var asc bool
+	if sortParam != "" {
+		if sortParam == "asc" {
+			asc = true
+		} else if sortParam == "desc" {
+			asc = false
+		}
+
+	}
+
 	// get author_id query parameter
 	authorIDInQueryParam := r.URL.Query().Get("author_id")
 	if authorIDInQueryParam != "" {
@@ -113,6 +125,9 @@ func (handler *ApiConfigHandler) HandlerReturnAllChirps(w http.ResponseWriter, r
 			}
 			userChirps = append(userChirps, c)
 		}
+		if !asc {
+			sort.Slice(userChirps, func(i, j int) bool { return userChirps[i].CreatedAt.After(userChirps[j].CreatedAt) })
+		}
 		helpers.RespondWithJson(w, http.StatusOK, userChirps)
 		return
 	}
@@ -137,6 +152,9 @@ func (handler *ApiConfigHandler) HandlerReturnAllChirps(w http.ResponseWriter, r
 		chirpsToReturn = append(chirpsToReturn, c)
 	}
 
+	if !asc {
+		sort.Slice(chirpsToReturn, func(i, j int) bool { return chirpsToReturn[i].CreatedAt.After(chirpsToReturn[j].CreatedAt) })
+	}
 	helpers.RespondWithJson(w, http.StatusOK, chirpsToReturn)
 }
 
